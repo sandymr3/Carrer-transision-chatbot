@@ -414,7 +414,7 @@ async def check_user_profile(user: UserBase):
     """Check if a user profile exists"""
     user_id = user.email.lower()
     profile = get_profile(user_id)
-    
+
     if profile and profile.get("tech_stack") and len(profile.get("tech_stack")) > 0:
         # Profile exists
         return {
@@ -424,6 +424,7 @@ async def check_user_profile(user: UserBase):
                 "background": profile.get("background", [])
             }
         }
+
     else:
         # Profile doesn't exist
         return {
@@ -479,6 +480,6 @@ async def process_chat(chat_data: ChatMessage):
     }
 
 # Run with: uvicorn main:app --reload
-"""if __name__ == "__main__":
+if __name__ == "__main__":
 
-    uvicorn.run(app, host="0.0.0.0", port=8000)"""
+    uvicorn.run(app, host="0.0.0.0", port=8000)
