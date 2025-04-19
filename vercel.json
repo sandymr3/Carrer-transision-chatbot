@@ -1,14 +1,14 @@
 {
     "builds": [
       {
-        "src": "query.py",
+        "src": "fpi.py",
         "use": "@vercel/python"
       }
     ],
     "routes": [
       {
         "src": "/(.*)",
-        "dest": "query.py"
+        "dest": "fpi.py"
       }
     ]
     
