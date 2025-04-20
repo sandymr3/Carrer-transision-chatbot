@@ -480,6 +480,6 @@ async def process_chat(chat_data: ChatMessage):
     }
 
 # Run with: uvicorn main:app --reload
-if __name__ == "__main__":
+"""if __name__ == "__main__":
 
-    uvicorn.run(app)
+    uvicorn.run(app)"""
