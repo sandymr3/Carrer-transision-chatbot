@@ -1,5 +1,9 @@
+
 fastapi
-google.generativeai
-supabase
-uvicorn
 python-dotenv
+google-generativeai
+supabase
+numpy
+uvicorn
+pydantic[email]
+python-multipart
