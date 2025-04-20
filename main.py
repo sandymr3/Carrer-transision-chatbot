@@ -151,11 +151,12 @@ def get_profile(user_id):
             .execute()
         
         if response.data and len(response.data) > 0:
-            return response.data[0]
-        return {"user_id": user_id, "background": [], "tech_stack": []}
+            return response.data[0]  # This will now contain the 'id'
+        return None  # <- key change
     except Exception as e:
         print(f"Error getting profile: {str(e)}")
-        return {"user_id": user_id, "background": [], "tech_stack": []}
+        return None
+
 
 def initialize_profile(user_id, domain, tech_input):
     """Initialize or update a user profile with domain background and tech stack"""
@@ -164,7 +165,7 @@ def initialize_profile(user_id, domain, tech_input):
         existing = get_profile(user_id)
         
         # If tech stack exists and is not empty, profile already initialized
-        if existing.get("tech_stack") and len(existing.get("tech_stack")) > 0:
+        if existing and existing.get("tech_stack") and len(existing.get("tech_stack")) > 0:
             return {"message": "Profile already exists", "profile": existing}
         
         # Generate structured data from user input
@@ -174,11 +175,12 @@ def initialize_profile(user_id, domain, tech_input):
         - Domain: {domain}
         - Tech stack: {tech_input}
 
-        Extract and return the domain background and tech stack as two separate lists in the format:
-        background = [...]
-        tech_stack = [...]
+        Return ONLY this format with no explanation or code formatting:
+
+        background = ["..."]
+        tech_stack = ["..."]
         """
-        
+
         response = chat_session.send_message(prompt).text
         
         try:
@@ -186,10 +188,9 @@ def initialize_profile(user_id, domain, tech_input):
             exec(response, {}, local_vars)
             background = list(set(local_vars.get("background", [])))
             tech_stack = list(set(local_vars.get("tech_stack", [])))
-            
-            # Insert or update profile in database
-            if "id" in existing:
-                # Profile exists, update it
+
+            if existing:
+                # Profile exists but was empty — update it
                 result = supabase.table("user_profiles") \
                     .update({
                         "background": background,
@@ -198,7 +199,7 @@ def initialize_profile(user_id, domain, tech_input):
                     .eq("user_id", user_id) \
                     .execute()
             else:
-                # Profile doesn't exist, create it
+                # Profile doesn't exist — insert new one
                 result = supabase.table("user_profiles") \
                     .insert({
                         "user_id": user_id,
@@ -221,6 +222,20 @@ def initialize_profile(user_id, domain, tech_input):
     except Exception as e:
         print(f"Error initializing profile: {str(e)}")
         raise
+
+def get_chat_history(user_id, limit=50):
+    """Fetch chat history for a user"""
+    try:
+        response = supabase.table("user_chats") \
+            .select("message, role, timestamp") \
+            .eq("user_id", user_id) \
+            .order("timestamp", desc=False) \
+            .limit(limit) \
+            .execute()
+        return response.data or []
+    except Exception as e:
+        print(f"Error fetching chat history: {str(e)}")
+        return []
 
 def chatbot_init(user_id):
     """Initialize chatbot with system instructions based on user profile"""
@@ -403,6 +418,7 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    
 )
 
 @app.get("/")
@@ -478,6 +494,14 @@ async def process_chat(chat_data: ChatMessage):
         "response": result["response"],
         "profile": result["profile"]
     }
+    
+@app.get("/chat-history", response_model=List[Dict[str, Any]])
+async def chat_history(email: EmailStr):
+    """Return the chat history for a user"""
+    user_id = email.lower()
+    chats = get_chat_history(user_id)
+    return chats
+
 
 # Run with: uvicorn main:app --reload
 """if __name__ == "__main__":
