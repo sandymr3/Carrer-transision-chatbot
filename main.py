@@ -175,8 +175,8 @@ def initialize_profile(user_id, domain, tech_input):
         - Tech stack: {tech_input}
 
         Extract and return the domain background and tech stack as two separate lists in the format:
-        Background = [...]
-        Tech_Stack = [...]
+        background = [...]
+        tech_stack = [...]
         """
         
         response = chat_session.send_message(prompt).text
@@ -184,16 +184,16 @@ def initialize_profile(user_id, domain, tech_input):
         try:
             local_vars = {}
             exec(response, {}, local_vars)
-            Background = list(set(local_vars.get("Background", [])))
-            Tech_Stack = list(set(local_vars.get("Tech_Stack", [])))
+            background = list(set(local_vars.get("background", [])))
+            tech_stack = list(set(local_vars.get("tech_stack", [])))
             
             # Insert or update profile in database
             if "id" in existing:
                 # Profile exists, update it
                 result = supabase.table("user_profiles") \
                     .update({
-                        "background": Background,
-                        "tech_stack": Tech_Stack
+                        "background": background,
+                        "tech_stack": tech_stack
                     }) \
                     .eq("user_id", user_id) \
                     .execute()
@@ -202,8 +202,8 @@ def initialize_profile(user_id, domain, tech_input):
                 result = supabase.table("user_profiles") \
                     .insert({
                         "user_id": user_id,
-                        "background": Background,
-                        "tech_stack": Tech_Stack,
+                        "background": background,
+                        "tech_stack": tech_stack,
                         "created_at": datetime.now().isoformat()
                     }) \
                     .execute()
@@ -211,8 +211,8 @@ def initialize_profile(user_id, domain, tech_input):
             return {
                 "message": "Profile created",
                 "profile": {
-                    "Background": Background,
-                    "Tech_Stack": Tech_Stack
+                    "background": background,
+                    "tech_stack": tech_stack
                 }
             }
         except Exception as e:
@@ -239,7 +239,7 @@ def chatbot_init(user_id):
 
         Tech Stack: {profile.get("tech_stack", [])}
 
-        Background: {profile.get("background", [])}
+        background: {profile.get("background", [])}
 
         Your task:
 
@@ -317,15 +317,15 @@ def chat_with_bot(user_id, message):
         Techstack refers to any programming languages, frameworks, or tools the user is familiar with.
 
         If it suggests new relevant tech stack items, return them as:
-        Tech_Stack = ["python", "fastapi", "etc"]
+        tech_stack = ["python", "fastapi", "etc"]
 
-        Background refers to the user's domain knowledge or experience.
+        background refers to the user's domain knowledge or experience.
         If it suggests relevant domains like software developer, data scientist, Microsoft intern, etc., return them as:
-        Background = ["software developer", "data scientist", "etc"]
+        background = ["software developer", "data scientist", "etc"]
 
         If neither, return:
-        Tech_Stack = []
-        Background = []
+        tech_stack = []
+        background = []
         """
         
         # Check for profile updates
@@ -334,8 +334,8 @@ def chat_with_bot(user_id, message):
         try:
             local_vars = {}
             exec(enrichment_response, {}, local_vars)
-            new_stack = set(local_vars.get("Tech_Stack", []))
-            new_bg = set(local_vars.get("Background", []))
+            new_stack = set(local_vars.get("tech_stack", []))
+            new_bg = set(local_vars.get("background", []))
             
             # Get current profile tech stack and background
             current_tech_stack = profile.get("tech_stack", [])
