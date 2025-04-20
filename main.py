@@ -236,6 +236,18 @@ def get_chat_history(user_id, limit=50):
     except Exception as e:
         print(f"Error fetching chat history: {str(e)}")
         return []
+    
+def delete_chat_history(user_id):
+    """Delete all chat messages for a user"""
+    try:
+        result = supabase.table("user_chats") \
+            .delete() \
+            .eq("user_id", user_id) \
+            .execute()
+        return True
+    except Exception as e:
+        print(f"Error deleting chat history: {str(e)}")
+        return False
 
 def chatbot_init(user_id):
     """Initialize chatbot with system instructions based on user profile"""
@@ -317,11 +329,7 @@ def chat_with_bot(user_id, message):
         # Build memory context from relevant chats
         memory_snippets = "\n".join([f"{c['role']}: {c['message']}" for c in relevant_chats])
         
-        # Create context-aware prompt
-        context_prompt = (
-            f"""Here are some relevant past conversations:\n{memory_snippets}\n\nUser said: "{message}"\nRespond appropriately."""
-            if memory_snippets else message
-        )
+        
         
         # Get user profile
         profile = get_profile(user_id)
@@ -381,8 +389,60 @@ def chat_with_bot(user_id, message):
             updated_stack = profile.get("tech_stack", [])
             updated_bg = profile.get("background", [])
         
+        
+        
+        ms="No relevant past conversations found."
+        
+        if memory_snippets:
+            ms= memory_snippets
+            
+            
+        # Create context-aware prompt
+        
+        context_prompt = (
+            f"""Here are some relevant past conversations:n {ms} User said: "{message}" 
+            the user is has knowledge on {updated_stack} and has a bockground domain knowledge on feilds like{updated_bg}
+            Respond for the user with the same tone and style as the previous conversations,
+            but make sure to give a focused,strategic answer tailored to that profile.
+            
+            You must respond in a way that is relevant to the user's query and tech stack.
+            
+            
+            
+            *You shall repond as if a typical chatbot is responding to the user*
+            Make your response in a way that it is easy to read and understand for the user.
+            "Respond as a helpful chatbot. Use natural, friendly language without
+            special characters like asterisks or markdown formatting. Separate paragraphs with line breaks
+            for clarity."
+            
+            
+            
+            An example of a user query:
+            
+            What are the most in-demand skills for transitioning to a tech career?
+            
+            
+            
+            An example of a possible output:
+            
+            Based on your background in software development and your interest in data science,
+            
+            I would recommend focusing on Python and R for data analysis, as well as SQL for database management.
+            
+            Additionally, consider learning about machine learning frameworks like TensorFlow or 
+            PyTorch to enhance your skill set.
+            
+            Projects that involve data visualization and predictive modeling
+            can be particularly beneficial for your career transition.
+            
+            
+            
+            """
+            
+        )
         # Get AI response to actual user message
         reply = chat_session.send_message(context_prompt)
+        
         
         # Generate embedding for assistant response
         assistant_embedding = genai.embed_content(
@@ -501,6 +561,15 @@ async def chat_history(email: EmailStr):
     user_id = email.lower()
     chats = get_chat_history(user_id)
     return chats
+
+@app.delete("/chat/{email}", response_model=Dict[str, bool])
+async def delete_user_chat_history(email: EmailStr):
+    """Delete chat history for a user"""
+    user_id = email.lower()
+    success = delete_chat_history(user_id)
+    if not success:
+        raise HTTPException(status_code=500, detail="Failed to delete chat history")
+    return {"success": True}
 
 
 # Run with: uvicorn main:app --reload
